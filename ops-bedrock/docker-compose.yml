@@ -6,8 +6,10 @@ version: '3.4'
 
 volumes:
   l1_data:
-  l2_data:
+  l2_data_geth:
+  l2_data_reth:
   op_log:
+  reth_build:
 
 
 services:
@@ -36,33 +38,15 @@ services:
     environment:
       GETH_MINER_RECOMMIT: 100ms
 
-  # l2:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.l2
-  #   ports:
-  #     - "9545:8545"
-  #     - "8060:6060"
-  #   volumes:
-  #     - "l2_data:/db"
-  #     - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
-  #     - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
-  #   entrypoint:  # pass the L2 specific flags by overriding the entry-point and adding extra arguments
-  #     - "/bin/sh"
-  #     - "/entrypoint.sh"
-  #     - "--authrpc.jwtsecret=/config/test-jwt-secret.txt"
-  #   environment:
-  #     GETH_MINER_RECOMMIT: 100ms
-
   l2:
     build:
       context: .
-      dockerfile: Dockerfile.l2-reth
+      dockerfile: Dockerfile.l2
     ports:
       - "9545:8545"
       - "8060:6060"
     volumes:
-      - "l2_data:/db"
+      - "l2_data_geth:/db"
       - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
     entrypoint:  # pass the L2 specific flags by overriding the entry-point and adding extra arguments
@@ -71,6 +55,43 @@ services:
       - "--authrpc.jwtsecret=/config/test-jwt-secret.txt"
     environment:
       GETH_MINER_RECOMMIT: 100ms
+
+  # l2:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.l2-reth
+  #     args:
+  #       RETH_REPO: https://github.com/RGafiyatullin/reth.git
+  #       # RETH_REV: thatroma/instant-sequencer/swap-geth-for-reth
+  #       RETH_REV: 67e96ae4f
+  #   ports:
+  #     - "9545:8545"
+  #     - "8060:6060"
+  #   volumes:
+  #     - "l2_data_reth:/db"
+  #     - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
+  #     - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+  #     - "reth_build:/opt/output/bin:ro"
+  #   entrypoint:  # pass the L2 specific flags by overriding the entry-point and adding extra arguments
+  #     - "/bin/sh"
+  #     - "/entrypoint.sh"
+  #     - "--authrpc.jwtsecret=/config/test-jwt-secret.txt"
+  #   environment:
+  #     GETH_MINER_RECOMMIT: 100ms
+  #     RUST_LOG: debug,reth_rpc_builder::=trace,rpc::=trace,reth-beacon-consensus::=trace,consensus::engine::=trace
+
+  seq:
+    build:
+      context: .
+      dockerfile: Dockerfile.runner
+    volumes:
+      - "reth_build:/opt/output/bin:ro"
+    environment:
+      RUST_LOG: debug
+      RPC_BIND_ADDR: 0.0.0.0:8540
+    # entrypoint: sleep infinity
+    entrypoint: /opt/output/bin/redstone-sequencer
+    stop_grace_period: 0s
 
   op-node:
     depends_on:
@@ -107,6 +128,7 @@ services:
       --metrics.port=7300
       --pprof.enabled
       --rpc.enable-admin
+      --log.level TRACE
     ports:
       - "7545:8545"
       - "9003:9003"
@@ -118,6 +140,8 @@ services:
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
       - "${PWD}/../.devnet/rollup.json:/rollup.json"
       - op_log:/op_log
+    environment:
+      GETH_VERBOSITY: 6
 
   op-proposer:
     depends_on:

@@ -29,7 +29,7 @@ RUN cargo build \
     --bin op-reth
 
 RUN mkdir -p /opt/output/bin/ \
-    && find target/release -type f -perm 0755 -maxdepth 1 \
+    && find target/release  -maxdepth 1 -type f -perm 0755 \
         | xargs -I '{}' cp '{}' /opt/output/bin/
 
 
