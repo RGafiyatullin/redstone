@@ -36,9 +36,36 @@ services:
       GETH_MINER_RECOMMIT: 100ms
 
   l2:
+    extends: l2-reth
+
+  l2-reth:
     build:
       context: .
-      dockerfile: Dockerfile.l2
+      dockerfile: Dockerfile.l2-reth
+    ports:
+      - "9545:8545"
+      - "8060:6060"
+    volumes:
+      - "l2_data:/db"
+      - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
+      - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+
+      - "${PWD}/../.rg/tshark:/tshark"
+    entrypoint:  # pass the L2 specific flags by overriding the entry-point and adding extra arguments
+      - "/bin/sh"
+      - "/entrypoint.sh"
+      - "--authrpc.jwtsecret=/config/test-jwt-secret.txt"
+    environment:
+      GETH_MINER_RECOMMIT: 100ms
+      ENABLE_TSHARK: 1
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+
+  l2-geth:
+    build:
+      context: .
+      dockerfile: Dockerfile.l2-geth
     ports:
       - "9545:8545"
       - "8060:6060"

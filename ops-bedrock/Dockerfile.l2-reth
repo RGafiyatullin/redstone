@@ -1,0 +1,54 @@
+### Reth: clone and checkout
+FROM rust:1.77-buster AS checkout-reth
+
+ARG RETH_REPO='https://github.com/RGafiyatullin/reth.git'
+ARG RETH_REV='2e87b2a8d'
+
+WORKDIR /src
+RUN git clone "${RETH_REPO}" .
+RUN git fetch && git checkout "${RETH_REV}" && git submodule update --init --recursive
+
+
+### Reth: build
+FROM rust:1.77-buster AS build-reth
+
+ENV DEBIAN_FRONTEND='noninteractive'
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    clang \
+    cmake \
+    libclang-dev
+
+WORKDIR /src
+COPY --from=checkout-reth /src /src
+
+RUN cargo build \
+    --release \
+    --features="optimism" \
+    --bin op-reth
+
+RUN mkdir -p /opt/output/bin/ \
+    && find target/release -type f -perm 0755 -maxdepth 1 \
+        | xargs -I '{}' cp '{}' /opt/output/bin/
+
+
+
+### OUTPUT
+FROM debian:buster
+
+ENV DEBIAN_FRONTEND='noninteractive'
+ENV SHELL=/bin/sh
+ENV PATH="/opt/output/bin:${PATH}"
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    jq \
+    tshark
+
+RUN mkdir -p /opt/output/bin
+
+COPY --from=build-reth /opt/output/bin/* /opt/output/bin/
+COPY entrypoint-l2-reth.sh /entrypoint.sh
+
+ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
