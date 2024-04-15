@@ -1,0 +1,50 @@
+### redstone-sequencer: clone and checkout
+FROM rust:1.77-buster AS checkout-rs
+
+ARG RS_REPO='https://github.com/RGafiyatullin/redstone-sequencer.git'
+ARG RS_REV='f70d1fa'
+
+WORKDIR /src
+RUN git clone "${RS_REPO}" .
+RUN git fetch && git checkout "${RS_REV}" && git submodule update --init --recursive
+
+
+### redstone-sequencer: build
+FROM rust:1.77-buster AS build-rs
+
+ENV DEBIAN_FRONTEND='noninteractive'
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    clang \
+    cmake \
+    libclang-dev
+
+WORKDIR /src
+COPY --from=checkout-rs /src /src
+
+RUN cargo build \
+    --release
+
+RUN mkdir -p /opt/output/bin/ \
+    && find target/release -type f -perm 0755 -maxdepth 1 \
+        | xargs -I '{}' cp '{}' /opt/output/bin/
+
+### OUTPUT
+FROM debian:buster
+
+ENV DEBIAN_FRONTEND='noninteractive'
+ENV SHELL=/bin/sh
+ENV PATH="/opt/output/bin:${PATH}"
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    jq \
+    tshark
+
+RUN mkdir -p /opt/output/bin
+
+COPY --from=build-rs /opt/output/bin/* /opt/output/bin/
+COPY entrypoint-l2-rs.sh /entrypoint.sh
+
+ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]

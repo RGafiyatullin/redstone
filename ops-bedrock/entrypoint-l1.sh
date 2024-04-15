@@ -1,6 +1,16 @@
 #!/bin/bash
 set -exu
 
+ENABLE_TSHARK=${ENABLE_TSHARK:-0}
+
+if [ "$ENABLE_TSHARK" = 1 ]; then
+	tshark \
+		-ni eth0 \
+		-w "/tshark/$(date +'%Y%m%d-%H%M%S-')$(hostname)-L1-geth.pcapng" \
+		-f 'tcp port 8545 or tcp port 8546 or tcp port 8551' &
+fi
+
+
 VERBOSITY=${GETH_VERBOSITY:-3}
 GETH_DATA_DIR=/db
 GETH_CHAINDATA_DIR="$GETH_DATA_DIR/geth/chaindata"

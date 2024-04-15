@@ -8,6 +8,8 @@ volumes:
   l1_data:
   l2_data:
   op_log:
+  reth_build:
+  rs_build:
 
 services:
   op_stack_go_builder:  # Not an actual service, but builds the prerequisite go images
@@ -32,16 +34,51 @@ services:
       - "l1_data:/db"
       - "${PWD}/../.devnet/genesis-l1.json:/genesis.json"
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+
+      - "${PWD}/../.rg/tshark:/tshark:rw"
     environment:
       GETH_MINER_RECOMMIT: 100ms
+      ENABLE_TSHARK: 1
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
 
   l2:
-    extends: l2-reth
+    # extends: l2-reth
+    # extends: l2-geth
+    extends: l2-rs
+
+  l2-rs:
+    depends_on:
+      - l2-geth
+    build:
+      context: .
+      dockerfile: Dockerfile.l2-rs
+    volumes:
+      - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
+      - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+
+      - "${PWD}/../.rg/tshark:/tshark:rw"
+      - "rs_build:/rs-build:ro"
+    environment:
+      ENABLE_TSHARK: 1
+      RUST_BACKTRACE: 1
+      RUST_LOG: info
+      RPC_BIND_ADDR_A: 0.0.0.0:8551
+      RPC_BIND_ADDR_B: 0.0.0.0:8545
+      BACKEND_ENGINE_API_URL: http://l2-geth:8551
+      BACKEND_ETH_API_URL: http://l2-geth:8545
+      BACKEND_ENGINE_API_JWT_SECRET_PATH: /config/test-jwt-secret.txt
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
 
   l2-reth:
     build:
       context: .
       dockerfile: Dockerfile.l2-reth
+      args:
+        RETH_REV: 869d024d2
     ports:
       - "9545:8545"
       - "8060:6060"
@@ -50,7 +87,8 @@ services:
       - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
 
-      - "${PWD}/../.rg/tshark:/tshark"
+      - "${PWD}/../.rg/tshark:/tshark:rw"
+      - "reth_build:/reth-build:ro"
     entrypoint:  # pass the L2 specific flags by overriding the entry-point and adding extra arguments
       - "/bin/sh"
       - "/entrypoint.sh"
@@ -58,6 +96,8 @@ services:
     environment:
       GETH_MINER_RECOMMIT: 100ms
       ENABLE_TSHARK: 1
+      PATH: /reth-build/release:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      RUST_LOG: info;consensus::engine=trace
     cap_add:
       - NET_RAW
       - NET_ADMIN
@@ -74,7 +114,7 @@ services:
       - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
 
-      - "${PWD}/../.rg/tshark:/tshark"
+      - "${PWD}/../.rg/tshark:/tshark:rw"
     entrypoint:  # pass the L2 specific flags by overriding the entry-point and adding extra arguments
       - "/bin/sh"
       - "/entrypoint.sh"
@@ -97,8 +137,10 @@ services:
       args:
         OP_STACK_GO_BUILDER: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-stack-go:devnet
     image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:devnet
+    entrypoint: /entrypoint.sh
     command: >
       op-node
+      --log.level=TRACE
       --l1=ws://l1:8546
       --l2=http://l2:8551
       --l2.jwt-secret=/config/test-jwt-secret.txt
@@ -132,6 +174,14 @@ services:
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
       - "${PWD}/../.devnet/rollup.json:/rollup.json"
       - op_log:/op_log
+
+      - "${PWD}/entrypoint-op-node.sh:/entrypoint.sh:ro"
+      - "${PWD}/../.rg/tshark:/tshark:rw"
+    environment:
+      ENABLE_TSHARK: 1
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
 
   op-proposer:
     depends_on:

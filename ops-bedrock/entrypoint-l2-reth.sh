@@ -6,7 +6,7 @@ ENABLE_TSHARK=${ENABLE_TSHARK:-0}
 if [ "$ENABLE_TSHARK" = 1 ]; then
 	tshark \
 		-ni eth0 \
-		-w "/tshark/$(date +'%Y%m%d-%H%M%S-')$(hostname).pcapng" \
+		-w "/tshark/$(date +'%Y%m%d-%H%M%S-')$(hostname)-L2-reth.pcapng" \
 		-f 'tcp port 8545 or tcp port 8546 or tcp port 8551' &
 fi
 
@@ -53,6 +53,8 @@ exec op-reth node \
 	--authrpc.port="8551" \
 	--metrics 0.0.0.0:6060 \
     --chain="${GENESIS_FILE_PATH}" \
+	--rollup.disable-tx-pool-gossip \
+	--rollup.enable-genesis-walkback \
 	"$@"
 
 # --networkid="$CHAIN_ID" \
