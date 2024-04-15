@@ -69,6 +69,10 @@ type Metricer interface {
 	RecordInfo(version string)
 	RecordUp()
 
+	RecordUnexpectedClaimResolution(address common.Address, count int)
+
+	RecordGameResolutionStatus(complete bool, maxDurationReached bool, count int)
+
 	RecordCredit(expectation CreditExpectation, count int)
 
 	RecordClaims(status ClaimStatus, count int)
@@ -98,7 +102,11 @@ type Metrics struct {
 	*opmetrics.CacheMetrics
 	*contractMetrics.ContractMetrics
 
+	resolutionStatus prometheus.GaugeVec
+
 	claims prometheus.GaugeVec
+
+	unexpectedClaimResolutions prometheus.GaugeVec
 
 	withdrawalRequests prometheus.GaugeVec
 
@@ -156,6 +164,21 @@ func NewMetrics() *Metrics {
 			Namespace: Namespace,
 			Name:      "claim_resolution_delay_max",
 			Help:      "Maximum claim resolution delay in seconds",
+		}),
+		unexpectedClaimResolutions: *factory.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "unexpected_claim_resolutions",
+			Help:      "Total number of unexpected claim resolutions against an honest actor",
+		}, []string{
+			"honest_actor_address",
+		}),
+		resolutionStatus: *factory.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "resolution_status",
+			Help:      "Number of games categorised by whether the game is complete and whether the maximum duration has been reached",
+		}, []string{
+			"completion",
+			"max_duration",
 		}),
 		credits: *factory.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: Namespace,
@@ -237,6 +260,22 @@ func (m *Metrics) RecordInfo(version string) {
 func (m *Metrics) RecordUp() {
 	prometheus.MustRegister()
 	m.up.Set(1)
+}
+
+func (m *Metrics) RecordUnexpectedClaimResolution(address common.Address, count int) {
+	m.unexpectedClaimResolutions.WithLabelValues(address.Hex()).Set(float64(count))
+}
+
+func (m *Metrics) RecordGameResolutionStatus(complete bool, maxDurationReached bool, count int) {
+	completion := "complete"
+	if !complete {
+		completion = "in_progress"
+	}
+	maxDuration := "reached"
+	if !maxDurationReached {
+		maxDuration = "not_reached"
+	}
+	m.resolutionStatus.WithLabelValues(completion, maxDuration).Set(float64(count))
 }
 
 func (m *Metrics) RecordCredit(expectation CreditExpectation, count int) {

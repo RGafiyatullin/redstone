@@ -203,7 +203,8 @@ func entrypoint(ctx *cli.Context) error {
 		}
 
 		// Build the batch
-		if err := upgrades.L1(&batch, list, *addresses, config, chainConfig, clients.L1Client); err != nil {
+		// op-upgrade assumes a superchain config for L1 contract-implementations set.
+		if err := upgrades.L1(&batch, list, *addresses, config, chainConfig, sc, clients.L1Client); err != nil {
 			return err
 		}
 	}
