@@ -11,6 +11,8 @@ if [ "$ENABLE_TSHARK" = 1 ]; then
 fi
 
 
+OP_RETH_BIN=${OP_RETH_BIN:-$(which op-reth)}
+
 VERBOSITY=${GETH_VERBOSITY:-3}
 GETH_DATA_DIR=/db
 GETH_CHAINDATA_DIR="$GETH_DATA_DIR/geth/chaindata"
@@ -22,7 +24,7 @@ WS_PORT="${WS_PORT:-8546}"
 if [ ! -d "$GETH_CHAINDATA_DIR" ]; then
 	echo "$GETH_CHAINDATA_DIR missing, running init"
 	echo "Initializing genesis."
-	op-reth init \
+	${OP_RETH_BIN} init \
 		--datadir="$GETH_DATA_DIR" \
 		--chain="$GENESIS_FILE_PATH"
 else
@@ -33,8 +35,7 @@ fi
 # pruned within minutes of starting the devnet.
 
 
-
-exec op-reth node \
+exec "${OP_RETH_BIN}" node \
     --datadir="$GETH_DATA_DIR" \
 	--http \
 	--http.corsdomain="*" \
@@ -56,13 +57,3 @@ exec op-reth node \
 	--rollup.disable-tx-pool-gossip \
 	--rollup.enable-genesis-walkback \
 	"$@"
-
-# --networkid="$CHAIN_ID" \
-# --rpc.allow-unprotected-txs \
-
-## error: the argument '--authrpc.jwtsecret <PATH>' cannot be used multiple times
-# --authrpc.jwtsecret=/config/jwt-secret.txt \
-
-
-## >> By default, Reth runs as an archive node. Such nodes have all historical blocks and the state at each of these blocks available for querying and tracing.
-# --gcmode=archive \

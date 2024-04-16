@@ -2,7 +2,7 @@
 FROM rust:1.77-buster AS checkout-rs
 
 ARG RS_REPO='https://github.com/RGafiyatullin/redstone-sequencer.git'
-ARG RS_REV='f70d1fa'
+ARG RS_REV='fff787d'
 
 WORKDIR /src
 RUN git clone "${RS_REPO}" .
@@ -35,16 +35,17 @@ FROM debian:buster
 
 ENV DEBIAN_FRONTEND='noninteractive'
 ENV SHELL=/bin/sh
-ENV PATH="/opt/output/bin:${PATH}"
+# ENV PATH="/opt/output/bin:${PATH}"
 
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     jq \
     tshark
 
-RUN mkdir -p /opt/output/bin
+# RUN mkdir -p /opt/output/bin
 
-COPY --from=build-rs /opt/output/bin/* /opt/output/bin/
+# COPY --from=build-rs /opt/output/bin/* /opt/output/bin/
 COPY entrypoint-l2-rs.sh /entrypoint.sh
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
+CMD ["redstone-sequencer", "node"]

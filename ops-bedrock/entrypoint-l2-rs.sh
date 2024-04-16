@@ -19,7 +19,7 @@ CHAIN_ID=$(cat "$GENESIS_FILE_PATH" | jq -r .config.chainId)
 RPC_PORT="${RPC_PORT:-8545}"
 WS_PORT="${WS_PORT:-8546}"
 
-exec redstone-sequencer node "$@"
+exec "$@"
 
 # \
 #     --datadir="$GETH_DATA_DIR" \

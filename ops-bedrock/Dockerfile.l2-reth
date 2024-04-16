@@ -1,8 +1,8 @@
 ### Reth: clone and checkout
 FROM rust:1.77-buster AS checkout-reth
 
-ARG RETH_REPO='https://github.com/RGafiyatullin/reth.git'
-ARG RETH_REV='2e87b2a8d'
+ARG RETH_REPO='https://github.com/RGafiyatullin/paradigmxyz_reth.git'
+ARG RETH_REV='227ee4485'
 
 WORKDIR /src
 RUN git clone "${RETH_REPO}" .
@@ -48,7 +48,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN mkdir -p /opt/output/bin
 
-COPY --from=build-reth /opt/output/bin/* /opt/output/bin/
+# COPY --from=build-reth /opt/output/bin/* /opt/output/bin/
 COPY entrypoint-l2-reth.sh /entrypoint.sh
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]

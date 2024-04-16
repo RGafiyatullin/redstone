@@ -9,7 +9,11 @@ volumes:
   l2_data:
   op_log:
   reth_build:
+    external:
+      name: build-op-reth_target_dir
   rs_build:
+    external:
+      name: build-redstone-sequencer_target_dir
 
 services:
   op_stack_go_builder:  # Not an actual service, but builds the prerequisite go images
@@ -44,9 +48,9 @@ services:
       - NET_ADMIN
 
   l2:
-    # extends: l2-reth
     # extends: l2-geth
-    extends: l2-rs
+    extends: l2-reth
+    # extends: l2-rs
 
   l2-rs:
     depends_on:
@@ -54,16 +58,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.l2-rs
+      args:
+        RS_REV: fff787d
     volumes:
       - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
 
       - "${PWD}/../.rg/tshark:/tshark:rw"
-      - "rs_build:/rs-build:ro"
+      - "rs_build:/build:ro"
     environment:
       ENABLE_TSHARK: 1
       RUST_BACKTRACE: 1
-      RUST_LOG: info
+      RUST_LOG: info,node::api::engine_api=debug,node::api::eth_api::send_raw_transaction=trace,node::sequencer=trace,node::api::engine_api::new_payload_v3=trace
       RPC_BIND_ADDR_A: 0.0.0.0:8551
       RPC_BIND_ADDR_B: 0.0.0.0:8545
       BACKEND_ENGINE_API_URL: http://l2-geth:8551
@@ -72,13 +78,16 @@ services:
     cap_add:
       - NET_RAW
       - NET_ADMIN
+    command:
+      - '/build/release/redstone-sequencer'
+      - 'node'
 
   l2-reth:
     build:
       context: .
       dockerfile: Dockerfile.l2-reth
       args:
-        RETH_REV: 869d024d2
+        RETH_REV: 227ee4485
     ports:
       - "9545:8545"
       - "8060:6060"
@@ -88,16 +97,14 @@ services:
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
 
       - "${PWD}/../.rg/tshark:/tshark:rw"
-      - "reth_build:/reth-build:ro"
-    entrypoint:  # pass the L2 specific flags by overriding the entry-point and adding extra arguments
-      - "/bin/sh"
-      - "/entrypoint.sh"
+      - "reth_build:/build:ro"
+    command:
       - "--authrpc.jwtsecret=/config/test-jwt-secret.txt"
     environment:
       GETH_MINER_RECOMMIT: 100ms
       ENABLE_TSHARK: 1
-      PATH: /reth-build/release:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       RUST_LOG: info;consensus::engine=trace
+      OP_RETH_BIN: /build/debug/op-reth
     cap_add:
       - NET_RAW
       - NET_ADMIN
@@ -140,6 +147,7 @@ services:
     entrypoint: /entrypoint.sh
     command: >
       op-node
+      --l1.beacon.ignore
       --log.level=TRACE
       --l1=ws://l1:8546
       --l2=http://l2:8551
