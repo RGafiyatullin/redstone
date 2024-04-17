@@ -10,7 +10,7 @@ volumes:
   op_log:
   reth_build:
     external:
-      name: build-op-reth_target_dir
+      name: build-reth_target_dir
   rs_build:
     external:
       name: build-redstone-sequencer_target_dir
@@ -186,7 +186,7 @@ services:
       - "${PWD}/entrypoint-op-node.sh:/entrypoint.sh:ro"
       - "${PWD}/../.rg/tshark:/tshark:rw"
     environment:
-      ENABLE_TSHARK: 1
+      ENABLE_TSHARK: 0
     cap_add:
       - NET_RAW
       - NET_ADMIN

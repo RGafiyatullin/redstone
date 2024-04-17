@@ -1,11 +1,10 @@
 #!/bin/sh
 set -exu
 
-apk add --no-cache tshark
-
 ENABLE_TSHARK=${ENABLE_TSHARK:-0}
 
 if [ "$ENABLE_TSHARK" = 1 ]; then
+	apk add --no-cache tshark
 	tshark \
 		-ni eth0 \
 		-w "/tshark/$(date +'%Y%m%d-%H%M%S-')$(hostname)-L2-op-node.pcapng" \
