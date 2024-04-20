@@ -1,5 +1,24 @@
 {
-    "Regolith": {"Block": 0},
-    "Canyon": {"Block": 0},
-    "Ecotone": {"Block": 0}
+    "Frontier": "Never",
+    "Homestead": { "Block": 0 },
+    "Dao": "Never",
+    "Tangerine": "Never",
+    "SpuriousDragon": "Never",
+    "Byzantium": { "Block": 0 },
+    "Constantinople": { "Block": 0 },
+    "Petersburg": { "Block": 0 },
+    "Istanbul": { "Block": 0 },
+    "MuirGlacier": { "Block": 0 },
+    "Berlin": { "Block": 0 },
+    "London": { "Block": 0 },
+    "ArrowGlacier": { "Block": 0 },
+    "GrayGlacier": { "Block": 0 },
+    "Shanghai": { "Timestamp": 0 },
+    "Cancun": { "Timestamp": 0 },
+    "Paris": { "TTD": { "total_difficulty": 0, "fork_block": 0 } },
+    "Bedrock": { "Block": 0 },
+    "Regolith": { "Timestamp": 0 },
+    "Canyon": { "Timestamp": 0 },
+    "Ecotone": { "Timestamp": 0 },
+    "Prague": "Never"
 }
