@@ -1,51 +1,54 @@
-### redstone-sequencer: clone and checkout
-FROM rust:1.77-buster AS checkout-rs
+# ### Reth: clone and checkout
+# FROM rust:1.77-buster AS checkout-reth
 
-ARG RS_REPO='https://github.com/RGafiyatullin/redstone-sequencer.git'
-ARG RS_REV='fff787d'
+# ARG RETH_REPO='https://github.com/RGafiyatullin/paradigmxyz_reth.git'
+# ARG RETH_REV='227ee4485'
 
-WORKDIR /src
-RUN git clone "${RS_REPO}" .
-RUN git fetch && git checkout "${RS_REV}" && git submodule update --init --recursive
+# WORKDIR /src
+# RUN git clone "${RETH_REPO}" .
+# RUN git fetch && git checkout "${RETH_REV}" && git submodule update --init --recursive
 
 
-### redstone-sequencer: build
-FROM rust:1.77-buster AS build-rs
+# ### Reth: build
+# FROM rust:1.77-buster AS build-reth
 
-ENV DEBIAN_FRONTEND='noninteractive'
+# ENV DEBIAN_FRONTEND='noninteractive'
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    clang \
-    cmake \
-    libclang-dev
+# RUN apt-get update && apt-get install -y \
+#     build-essential \
+#     clang \
+#     cmake \
+#     libclang-dev
 
-WORKDIR /src
-COPY --from=checkout-rs /src /src
+# WORKDIR /src
+# COPY --from=checkout-reth /src /src
 
-RUN cargo build \
-    --release
+# RUN cargo build \
+#     --release \
+#     --features="optimism" \
+#     --bin op-reth
 
-RUN mkdir -p /opt/output/bin/ \
-    && find target/release -type f -perm 0755 -maxdepth 1 \
-        | xargs -I '{}' cp '{}' /opt/output/bin/
+# RUN mkdir -p /opt/output/bin/ \
+#     && find target/release -type f -perm 0755 -maxdepth 1 \
+#         | xargs -I '{}' cp '{}' /opt/output/bin/
+
+
 
 ### OUTPUT
 FROM debian:buster
 
 ENV DEBIAN_FRONTEND='noninteractive'
 ENV SHELL=/bin/sh
-# ENV PATH="/opt/output/bin:${PATH}"
+ENV PATH="/opt/output/bin:${PATH}"
 
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     jq \
     tshark
 
-# RUN mkdir -p /opt/output/bin
+RUN mkdir -p /opt/output/bin
 
-# COPY --from=build-rs /opt/output/bin/* /opt/output/bin/
+# COPY --from=build-reth /opt/output/bin/* /opt/output/bin/
 COPY entrypoint-l2-rs.sh /entrypoint.sh
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
-CMD ["redstone-sequencer", "node"]

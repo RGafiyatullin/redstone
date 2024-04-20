@@ -8,9 +8,9 @@ volumes:
   l1_data:
   l2_data:
   op_log:
-  reth_build:
-    external:
-      name: build-reth_target_dir
+  # reth_build:
+  #   external:
+  #     name: build-reth_target_dir
   rs_build:
     external:
       name: build-redstone-sequencer_target_dir
@@ -49,10 +49,11 @@ services:
 
   l2:
     # extends: l2-geth
-    extends: l2-reth
-    # extends: l2-rs
+    # extends: l2-reth
+    extends: l2-rs
+    # extends: l2-rs-proxy
 
-  l2-rs:
+  l2-rs-proxy:
     depends_on:
       - l2-geth
     build:
@@ -79,35 +80,63 @@ services:
       - NET_RAW
       - NET_ADMIN
     command:
-      - '/build/release/redstone-sequencer'
+      - '/build/debug/redstone-sequencer'
       - 'node'
 
-  l2-reth:
+  l2-rs:
     build:
       context: .
-      dockerfile: Dockerfile.l2-reth
+      dockerfile: Dockerfile.l2-rs
       args:
         RETH_REV: 227ee4485
     ports:
       - "9545:8545"
       - "8060:6060"
     volumes:
-      - "l2_data:/db"
-      - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
-      - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+      - "l2_data:/db:rw"
+      - "${PWD}/../.devnet/genesis-l2.json:/genesis.json:ro"
+      - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt:ro"
+      - "${PWD}/l2-fork-conditions.json:/fork-conditions.json:ro"
 
       - "${PWD}/../.rg/tshark:/tshark:rw"
-      - "reth_build:/build:ro"
+      - "rs_build:/build:ro"
     command:
       - "--authrpc.jwtsecret=/config/test-jwt-secret.txt"
     environment:
       GETH_MINER_RECOMMIT: 100ms
       ENABLE_TSHARK: 1
       RUST_LOG: info;consensus::engine=trace
-      OP_RETH_BIN: /build/debug/op-reth
+      OP_RETH_BIN: /build/debug/redstone-sequencer
     cap_add:
       - NET_RAW
       - NET_ADMIN
+
+  # l2-reth:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.l2-reth
+  #     args:
+  #       RETH_REV: 227ee4485
+  #   ports:
+  #     - "9545:8545"
+  #     - "8060:6060"
+  #   volumes:
+  #     - "l2_data:/db"
+  #     - "${PWD}/../.devnet/genesis-l2.json:/genesis.json"
+  #     - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
+
+  #     - "${PWD}/../.rg/tshark:/tshark:rw"
+  #     - "reth_build:/build:ro"
+  #   command:
+  #     - "--authrpc.jwtsecret=/config/test-jwt-secret.txt"
+  #   environment:
+  #     GETH_MINER_RECOMMIT: 100ms
+  #     ENABLE_TSHARK: 1
+  #     RUST_LOG: info;consensus::engine=trace
+  #     OP_RETH_BIN: /build/debug/op-reth
+  #   cap_add:
+  #     - NET_RAW
+  #     - NET_ADMIN
 
   l2-geth:
     build:
