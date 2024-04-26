@@ -100,13 +100,17 @@ services:
 
       - "${PWD}/../.rg/tshark:/tshark:rw"
       - "rs_build:/build:ro"
-    command:
-      - "--authrpc.jwtsecret=/config/test-jwt-secret.txt"
+    # command:
+    #   - "--authrpc.jwtsecret=/config/test-jwt-secret.txt"
     environment:
-      GETH_MINER_RECOMMIT: 100ms
       ENABLE_TSHARK: 1
-      RUST_LOG: info;consensus::engine=trace
-      OP_RETH_BIN: /build/debug/redstone-sequencer
+      RUST_BACKTRACE: 1
+      RUST_LOG: debug,hyper=info,jsonrpsee_server=info,jsonrpsee-server=info
+
+      REDSTONE_SEQUENCER_BIN: /build/debug/redstone-sequencer-lite
+      RPC_BIND_ADDR_A: 0.0.0.0:8551
+      RPC_BIND_ADDR_B: 0.0.0.0:8545
+      DB_PATH: /db
     cap_add:
       - NET_RAW
       - NET_ADMIN
